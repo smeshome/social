@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社會科條列3-2-1數位教學平台</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- QRCode Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.css"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    
+    <!-- Markdown Parser (Marked) for AI output formatting -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Toast Notification Styles */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: white;
+            border-left: 4px solid #3b82f6;
+            padding: 16px 24px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            animation: slideIn 0.3s ease-out forwards;
+            font-size: 14px;
+            color: #334155;
+        }
+        .toast.success { border-left-color: #22c55e; }
+        .toast.error { border-left-color: #ef4444; }
+        .toast.info { border-left-color: #3b82f6; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b border-slate-200 z-20 flex-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg">
+                        <i class="fa-solid fa-layer-group text-xl"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-xl text-blue-900 tracking-tight">社會科條列3-2-1 數位教學平台</span>
+                        <span class="text-xs text-slate-500">作業管理強化版</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <!-- Role Switcher (For Demo Purpose) -->
+                    <div class="hidden md:flex bg-slate-100 rounded-lg p-1 mr-4 border border-slate-200" id="roleSwitcher">
+                        <button onclick="app.switchRole('teacher')" id="btnRoleTeacher" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 hover:text-slate-700">
+                            <i class="fa-solid fa-chalkboard-user mr-2"></i>教師
+                        </button>
+                        <button onclick="app.switchRole('student')" id="btnRoleStudent" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm">
+                            <i class="fa-solid fa-user-graduate mr-2"></i>學生
+                        </button>
+                    </div>
+
+                    <button onclick="app.ui.openHelpModal()" class="text-slate-500 hover:text-blue-600 transition-colors" title="說明">
+                        <i class="fa-regular fa-circle-question text-xl"></i>
+                    </button>
+                    <button onclick="app.ui.openConfigModal()" class="text-slate-500 hover:text-blue-600 transition-colors" title="設定">
+                        <i class="fa-solid fa-gear text-xl"></i>
+                    </button>
+                    <div id="connectionStatus" class="h-3 w-3 rounded-full bg-red-400" title="未連線"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-hidden relative" id="mainContainer">
+        
+        <!-- View: Teacher Dashboard -->
+        <div id="viewTeacherDashboard" class="view-section h-full overflow-y-auto p-6 hidden">
+            <div class="max-w-6xl mx-auto">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-800">我的作業列表</h2>
+                    <button onclick="app.teacher.resetCreateForm(); app.nav.to('viewTeacherCreate')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> 新增作業
+                    </button>
+                </div>
+                
+                <!-- Assignment List Grid -->
+                <div id="teacherAssignmentList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Dynamic Content -->
+                    <div class="col-span-full text-center py-20 text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-3xl mb-4"></i>
+                        <p>載入中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Teacher Submission List (By Student) -->
+        <div id="viewTeacherSubmissionList" class="view-section h-full overflow-y-auto p-6 hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-3">
+                        <button onclick="app.nav.back()" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-arrow-left"></i> 返回列表</button>
+                        <h2 class="text-xl font-bold text-slate-800" id="submissionListTitle">作業繳交狀況</h2>
+                    </div>
+                    <div class="flex bg-slate-200 rounded-lg p-1">
+                        <button class="px-4 py-1.5 rounded-md text-sm font-medium bg-white text-blue-600 shadow-sm transition-all">按學生檢視</button>
+                        <button onclick="app.teacher.openQuestionStats(state.currentAssignmentId)" class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition-all">按題目檢視</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">學生姓名</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">繳交時間</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">狀態</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">分數</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-slate-200" id="submissionListBody">
+                                <!-- Dynamic Content -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="noSubmissionsHint" class="hidden p-10 text-center text-slate-500">
+                        <i class="fa-regular fa-folder-open text-3xl mb-3"></i>
+                        <p>目前尚無學生繳交作業</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Teacher Question Stats (By Question) -->
+        <div id="viewTeacherQuestionStats" class="view-section h-full overflow-y-auto p-6 hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-3">
+                        <button onclick="app.nav.back()" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-arrow-left"></i> 返回</button>
+                        <h2 class="text-xl font-bold text-slate-800" id="questionStatsTitle">作業題目分析</h2>
+                    </div>
+                    <div class="flex bg-slate-200 rounded-lg p-1">
+                        <button onclick="app.teacher.viewSubmissions(state.currentAssignmentId)" class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-600 hover:text-slate-800 transition-all">按學生檢視</button>
+                        <button class="px-4 py-1.5 rounded-md text-sm font-medium bg-white text-blue-600 shadow-sm transition-all">按題目檢視</button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 mb-6 space-x-1">
+                    <button onclick="app.teacher.renderQuestionTab('q3')" id="tabQ3" class="px-6 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600 transition-colors focus:outline-none">Q3 (事實提取)</button>
+                    <button onclick="app.teacher.renderQuestionTab('q2')" id="tabQ2" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors focus:outline-none">Q2 (詮釋分析)</button>
+                    <button onclick="app.teacher.renderQuestionTab('q1')" id="tabQ1" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors focus:outline-none">Q1 (省思整合)</button>
+                </div>
+
+                <!-- Content -->
+                <div class="space-y-6">
+                    <!-- Question Text Card -->
+                    <div class="bg-blue-50 border border-blue-100 rounded-lg p-5">
+                        <h4 class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">題目內容</h4>
+                        <p class="text-lg font-bold text-blue-900" id="statsQuestionText">...</p>
+                    </div>
+
+                    <!-- Answers List -->
+                    <div id="statsAnswersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Dynamic Cards -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Teacher Create/Edit -->
+        <div id="viewTeacherCreate" class="view-section h-full overflow-hidden flex flex-col hidden bg-white">
+            <div class="border-b border-slate-200 px-6 py-4 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <button onclick="app.nav.back()" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h2 class="text-lg font-bold" id="pageTitleCreate">建立 3-2-1 作業</h2>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="app.teacher.saveAssignment('draft')" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">存為草稿</button>
+                    <button onclick="app.teacher.saveAssignment('active')" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow-sm" id="btnSaveAssignment">儲存並派送</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
+                <!-- Left: Material Input -->
+                <div class="w-full md:w-1/2 p-6 overflow-y-auto border-r border-slate-100">
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">作業標題</label>
+                        <input type="text" id="inputTitle" class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="例如：高雄港的地理優勢">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">教材素材 (PDF/圖片)</label>
+                        <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer relative" id="dropZone">
+                            <input type="file" id="inputFile" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*,.pdf,.txt">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                            <p class="text-sm text-slate-500">點擊或拖這上傳 PDF 文件</p>
+                            <p class="text-xs text-slate-400 mt-1">(支援 PDF 自動擷取文字)</p>
+                        </div>
+                        <div id="previewImageContainer" class="mt-4 hidden relative group">
+                            <img id="previewImage" class="max-h-60 rounded-lg shadow-sm mx-auto border border-slate-200">
+                            <button onclick="app.teacher.clearImage()" class="absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-slate-700">教材文本內容</label>
+                            <span class="text-xs text-slate-500">上傳 PDF 可自動填入，或手動輸入供 AI 出題</span>
+                        </div>
+                        <textarea id="inputTextContent" class="w-full h-64 border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none" placeholder="在此輸入教學文本，或上傳 PDF 解析..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Right: Questions Generation -->
+                <div class="w-full md:w-1/2 p-6 overflow-y-auto bg-slate-50">
+                    <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+                        <h3 class="text-blue-800 font-bold mb-2"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>AI 輔助出題</h3>
+                        <p class="text-sm text-blue-600 mb-3">系統將依據左側教材，自動生成符合 3-2-1 策略的層次提問。</p>
+                        <div class="grid grid-cols-3 gap-2 text-xs text-slate-500 mb-3">
+                            <div class="bg-white p-2 rounded border border-blue-100">
+                                <span class="font-bold block text-blue-600">3 (事實提取)</span>
+                                <span class="scale-90 block origin-top-left">找出三個重點</span>
+                            </div>
+                            <div class="bg-white p-2 rounded border-blue-100">
+                                <span class="font-bold block text-blue-600">2 (詮釋分析)</span>
+                                <span class="scale-90 block origin-top-left">回答兩項比較/舉例</span>
+                            </div>
+                            <div class="bg-white p-2 rounded border-blue-100">
+                                <span class="font-bold block text-blue-600">1 (省思整合)</span>
+                                <span class="scale-90 block origin-top-left">回答一個深入觀點</span>
+                            </div>
+                        </div>
+                        <button onclick="app.ai.generateQuestions()" id="btnGenerate" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-2 rounded-lg font-medium shadow-md transition-all flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-robot"></i> 一鍵智能生成
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Q3 (層次 3 - 寫出三個...)</label>
+                            <input type="text" id="inputQ3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none" placeholder="例如：請從文章中找出三個高雄港的特色">
+                        </div>
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Q2 (層次 2 - 寫出兩個...)</label>
+                            <input type="text" id="inputQ2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none" placeholder="例如：請舉出兩個高雄港對台灣經濟的影響">
+                        </div>
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Q1 (層次 1 - 寫出一個...)</label>
+                            <input type="text" id="inputQ1" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none" placeholder="例如：如果你是市長，你會如何規劃高雄港的未來？">
+                        </div>
+
+                        <div class="mt-6 pt-6 border-t border-slate-200">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">參考答案與知識點 (教師可見)</label>
+                            <textarea id="inputRefAnswer" class="w-full h-32 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none resize-none bg-yellow-50" placeholder="AI 生成的參考答案將顯示於此..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Student Dashboard -->
+        <div id="viewStudentDashboard" class="view-section h-full overflow-y-auto p-6 hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4"><i class="fa-solid fa-bell text-yellow-500 mr-2"></i>待辦作業通知</h2>
+                    <!-- 修改：移除原有的 Flex 樣式，改為 space-y-4 用於列表呈現 -->
+                    <div id="studentActiveAssignment" class="space-y-4">
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 text-center text-slate-500">
+                            載入中...
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-800 mb-4">已繳交記錄 & 回饋</h3>
+                <div id="studentHistoryList" class="space-y-4">
+                    <!-- History Items -->
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Student Assignment Taking -->
+        <div id="viewStudentDo" class="view-section h-full overflow-hidden flex flex-col hidden bg-white">
+             <div class="border-b border-slate-200 px-6 py-4 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <button onclick="app.nav.back()" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h2 class="text-lg font-bold" id="doTitle">作業標題</h2>
+                </div>
+                <button onclick="app.student.submitAssignment()" class="px-6 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg shadow-sm font-medium">
+                    <i class="fa-solid fa-paper-plane mr-2"></i>送出繳交
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-hidden flex flex-col items-center justify-center bg-slate-50 p-6">
+                
+                <!-- Right: 3-2-1 Inputs (Centered, Full Width) -->
+                <div class="w-full max-w-3xl h-full overflow-y-auto pr-2">
+                    
+                    <!-- Added Name Input Here -->
+                    <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm mb-6">
+                        <label class="block font-bold text-lg text-slate-800 mb-2">學生姓名 <span class="text-red-500">*</span></label>
+                        <input type="text" id="inputStudentName" class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="請輸入您的姓名">
+                    </div>
+
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 text-center">3-2-1 專注答題區</h3>
+                    
+                    <div class="space-y-8 pb-12">
+                        <!-- Q3 Answer (3 Inputs) -->
+                        <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative">
+                            <div class="absolute -left-3 top-5 bg-blue-100 text-blue-800 font-bold px-2 py-1 rounded text-xs border border-blue-200">3</div>
+                            <label class="block font-bold text-lg text-slate-800 mb-4" id="labelDoQ3">...</label>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-400 text-sm font-bold w-4">1.</span>
+                                    <input type="text" id="answerA3_1" class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="回答一">
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-400 text-sm font-bold w-4">2.</span>
+                                    <input type="text" id="answerA3_2" class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="回答二">
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-400 text-sm font-bold w-4">3.</span>
+                                    <input type="text" id="answerA3_3" class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="回答三">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Q2 Answer (2 Inputs) -->
+                        <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative">
+                            <div class="absolute -left-3 top-5 bg-indigo-100 text-indigo-800 font-bold px-2 py-1 rounded text-xs border border-indigo-200">2</div>
+                            <label class="block font-bold text-lg text-slate-800 mb-4" id="labelDoQ2">...</label>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-400 text-sm font-bold w-4">1.</span>
+                                    <input type="text" id="answerA2_1" class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="回答一">
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-slate-400 text-sm font-bold w-4">2.</span>
+                                    <input type="text" id="answerA2_2" class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="回答二">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Q1 Answer (1 Textarea) -->
+                        <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative">
+                            <div class="absolute -left-3 top-5 bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded text-xs border border-purple-200">1</div>
+                            <label class="block font-bold text-lg text-slate-800 mb-4" id="labelDoQ1">...</label>
+                            <textarea id="answerA1" class="w-full h-32 border border-slate-300 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="請回答一項省思..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Teacher Grade/View Submission -->
+        <div id="viewTeacherGrade" class="view-section h-full overflow-y-auto p-6 hidden">
+             <div class="max-w-5xl mx-auto bg-white rounded-xl shadow border border-slate-200 overflow-hidden">
+                <div class="border-b border-slate-200 px-6 py-4 flex justify-between items-center bg-slate-50">
+                    <button onclick="app.nav.back()" class="text-slate-500 hover:text-slate-800"><i class="fa-solid fa-arrow-left"></i> 返回</button>
+                    <h2 class="text-lg font-bold" id="gradeStudentName">學生答題詳情</h2>
+                </div>
+                <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <h3 class="font-bold text-slate-400 text-sm uppercase">學生回答</h3>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <p class="text-xs text-blue-600 font-bold mb-1">3 (事實)</p>
+                            <p class="font-medium mb-1 text-slate-800" id="gradeQ3">...</p>
+                            <div class="text-slate-600 bg-white p-2 rounded border border-slate-200 whitespace-pre-wrap" id="gradeA3">...</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <p class="text-xs text-indigo-600 font-bold mb-1">2 (詮釋)</p>
+                            <p class="font-medium mb-1 text-slate-800" id="gradeQ2">...</p>
+                            <div class="text-slate-600 bg-white p-2 rounded border border-slate-200 whitespace-pre-wrap" id="gradeA2">...</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <p class="text-xs text-purple-600 font-bold mb-1">1 (省思)</p>
+                            <p class="font-medium mb-1 text-slate-800" id="gradeQ1">...</p>
+                            <div class="text-slate-600 bg-white p-2 rounded border border-slate-200 whitespace-pre-wrap" id="gradeA1">...</div>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <h3 class="font-bold text-slate-400 text-sm uppercase">評分與回饋</h3>
+                        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4">
+                            <h4 class="text-xs font-bold text-yellow-700 mb-2">參考答案 & 知識點</h4>
+                            <p class="text-sm text-yellow-800 whitespace-pre-wrap" id="gradeRefAnswer">...</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">分數 (0-100)</label>
+                            <input type="number" id="inputGradeScore" class="w-24 border border-slate-300 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">教師評語</label>
+                            <textarea id="inputGradeFeedback" class="w-full h-32 border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="給予學生的建議..."></textarea>
+                        </div>
+                        <button onclick="app.teacher.submitGrade()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 shadow-sm">
+                            儲存評分
+                        </button>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500 flex-none z-10">
+        <p class="mb-1">
+            Made by <a href="#" class="text-blue-600 hover:underline font-bold">阿剛老師</a> | 
+            <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" class="hover:text-slate-800">CC BY-NC-SA 4.0 (姓名標示-非商業性-相同方式分享)</a>
+        </p>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Password Modal -->
+    <div id="modalPassword" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">教師專區驗證</h3>
+                <p class="text-sm text-slate-500 mb-4 text-center">請輸入密碼以進入教師介面</p>
+                <input type="password" id="inputTeacherPassword" class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none mb-4 text-center" placeholder="請輸入密碼">
+                <div class="flex gap-3 justify-center">
+                    <button onclick="app.ui.closeModal('modalPassword')" class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium">取消</button>
+                    <button id="btnVerifyPassword" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm">
+                        確認
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="modalConfirm" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <!-- 修改：加入 ID 以便動態修改文字 -->
+                <h3 class="text-lg font-bold text-slate-800 mb-2" id="confirmTitle">確定要刪除嗎？</h3>
+                <p class="text-sm text-slate-500 mb-6" id="confirmDesc">此動作無法復原，相關的學生繳交紀錄也可能一併遺失。</p>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="app.ui.closeModal('modalConfirm')" class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium">取消</button>
+                    <button id="btnConfirmAction" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm">
+                        確定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div id="modalConfig" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800">系統設定</h3>
+                <button onclick="app.ui.closeModal('modalConfig')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 max-h-[80vh] overflow-y-auto">
+                <!-- Firebase Config -->
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-slate-700 mb-2 flex items-center">
+                        <i class="fa-brands fa-google text-orange-500 mr-2"></i> Firebase 設定 (必要)
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">請從 Firebase Console 複製 config 物件內容 (包含 apiKey, authDomain 等) 貼上。</p>
+                    <textarea id="configInput" class="w-full h-32 font-mono text-xs border border-slate-300 rounded-lg p-3 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder='const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+};'></textarea>
+                </div>
+
+                <!-- AI Mode -->
+                <div class="mb-6 border-t border-slate-100 pt-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-2 flex items-center">
+                        <i class="fa-solid fa-brain text-purple-500 mr-2"></i> AI 模型設定 (Gemini)
+                    </label>
+                    <div class="flex gap-4 mb-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="aiMode" value="default" checked onchange="app.ui.toggleAiInput()" class="text-blue-600">
+                            <span class="text-sm">預設免費模式 (Demo)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="aiMode" value="custom" onchange="app.ui.toggleAiInput()" class="text-blue-600">
+                            <span class="text-sm">自訂 API Key (個人額度)</span>
+                        </label>
+                    </div>
+                    <div id="customAiKeyInput" class="hidden">
+                        <input type="password" id="inputAiKey" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="貼上您的 Gemini API Key">
+                    </div>
+                </div>
+
+                <!-- Share Section -->
+                <div class="mb-4 border-t border-slate-100 pt-4 bg-blue-50 p-4 rounded-lg">
+                    <h4 class="text-sm font-bold text-blue-800 mb-2">快速分享設定</h4>
+                    <p class="text-xs text-blue-600 mb-3">生成包含設定參數的 QR Code，讓其他人掃描即可直接使用。</p>
+                    <button onclick="app.config.generateShareLink()" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">產生分享連結 & QR Code</button>
+                    <div id="shareResult" class="mt-3 hidden text-center">
+                        <div id="qrcode" class="flex justify-center mb-2 bg-white p-2 rounded w-fit mx-auto"></div>
+                        <input type="text" id="shareUrl" class="w-full text-xs border border-slate-300 rounded px-2 py-1 text-slate-500" readonly onclick="this.select()">
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-between items-center">
+                <!-- 新增：清除設定按鈕 -->
+                <button onclick="app.config.clearConfig()" class="text-red-500 hover:text-red-700 text-sm font-bold flex items-center transition-colors">
+                    <i class="fa-solid fa-trash-can mr-2"></i>清除設定
+                </button>
+                <button onclick="app.config.saveConfig()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm">
+                    儲存並重新整理
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="modalHelp" class="fixed inset-0 bg-slate-900/50 z-50 hidden flex items-center justify-center backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
+            <div class="p-6">
+                <h3 class="text-xl font-bold mb-4 text-slate-800">如何設定 Firebase？</h3>
+                <ol class="list-decimal list-inside space-y-3 text-sm text-slate-600">
+                    <li>前往 <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-600 underline">Firebase Console</a> 並建立新專案。</li>
+                    <li>在專案設定中，新增一個 <strong>Web App</strong>。</li>
+                    <li>複製 <code>firebaseConfig</code> 物件內容。</li>
+                    <li>回到本平台，點擊右上角「設定」，貼上內容。</li>
+                    <li><strong>重要：</strong>前往 Firestore Database，建立資料庫並設定規則，使用測試模式，直接把西元年+100即可。</li>
+                    <li>前往 Authentication，啟用 <strong>Anonymous (匿名)</strong> 登入。</li>
+                </ol>
+                <div class="mt-6 text-right">
+                    <button onclick="app.ui.closeModal('modalHelp')" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300">我知道了</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module">
+        /**
+         * =============================================================================
+         * Firebase Configuration Area (優先級別 1：程式碼寫死)
+         * =============================================================================
+         */
+         const HARDCODED_FIREBASE_CONFIG = {
+             apiKey: "AIzaSyBGolOHroUwehEDZg58lhaV-UYfr8gLu9g",
+  authDomain: "social-8ea03.firebaseapp.com",
+  projectId: "social-8ea03",
+  storageBucket: "social-8ea03.firebasestorage.app",
+  messagingSenderId: "486710005860",
+  appId: "1:486710005860:web:aedc24de621c62a2cc0f71"
+         }; 
+         
+         // Import Firebase SDKs (v9 Modular via CDN)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // --- Global App State ---
+        const state = {
+            currentUser: null,
+            role: 'student', // 'teacher' or 'student'
+            db: null,
+            auth: null,
+            assignments: [],
+            currentAssignmentId: null,
+            currentSubmissionId: null, // Track currently graded submission
+            isEditing: false, // Track if editing mode
+            submissions: [], // Cache submissions for stats view
+            config: null,
+            aiMode: 'default', // 'default' or 'custom'
+            customAiKey: '',
+            pendingDeleteId: null,
+            currentQuestionTab: 'q3' // q3, q2, q1
+        };
+
+        // --- App Logic Container ---
+        const app = {
+            // --- Initialization ---
+            init: async () => {
+                let finalConfig = null;
+
+                // 1. Priority: URL Params (Share Link)
+                // 嘗試從網址取得設定，若有則會自動存入 LocalStorage 並回傳設定物件
+                const urlConfig = app.config.getUrlConfig();
+                
+                if (urlConfig) {
+                    console.log("Using URL Config");
+                    finalConfig = urlConfig;
+                }
+
+                // 2. Priority: LocalStorage
+                // 若網址沒有設定，則嘗試讀取本地儲存
+                if (!finalConfig) {
+                    const storedConfigStr = localStorage.getItem('firebase_config');
+                    if (storedConfigStr) {
+                        console.log("Using LocalStorage Config");
+                        finalConfig = JSON.parse(storedConfigStr);
+                    }
+                }
+
+                // 3. Priority: Hardcoded
+                // 若以上皆空，且程式碼中有寫死設定，則使用寫死的設定
+                if (!finalConfig && HARDCODED_FIREBASE_CONFIG) {
+                    console.log("Using Hardcoded Config");
+                    finalConfig = HARDCODED_FIREBASE_CONFIG;
+                }
+
+                state.config = finalConfig;
+                state.aiMode = localStorage.getItem('ai_mode') || 'default';
+                state.customAiKey = localStorage.getItem('custom_api_key') || '';
+
+                // Force Student Role on Init
+                app.doSwitch('student');
+
+                if (state.config) {
+                    app.firebase.connect();
+                } else {
+                    app.ui.showUnconfiguredState();
+                }
+            },
+
+            // --- Firebase Logic ---
+            firebase: {
+                connect: async () => {
+                    try {
+                        const firebaseApp = initializeApp(state.config);
+                        state.auth = getAuth(firebaseApp);
+                        state.db = getFirestore(firebaseApp);
+
+                        // Anonymous Auth
+                        onAuthStateChanged(state.auth, (user) => {
+                            if (user) {
+                                state.currentUser = user;
+                                console.log("User logged in:", user.uid);
+                                document.getElementById('connectionStatus').className = "h-3 w-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]";
+                                document.getElementById('connectionStatus').title = "已連線";
+                                
+                                // Start Listeners
+                                app.teacher.loadAssignments();
+                                app.nav.to(state.role === 'teacher' ? 'viewTeacherDashboard' : 'viewStudentDashboard');
+                            } else {
+                                signInAnonymously(state.auth).catch((error) => {
+                                    console.error("Auth Error:", error);
+                                    app.ui.showToast("登入失敗，請檢查 Firebase Auth 設定是否啟用匿名登入。", "error");
+                                });
+                            }
+                        });
+
+                    } catch (e) {
+                        console.error("Firebase Init Error:", e);
+                        app.ui.showToast("Firebase 初始化失敗，請檢查設定格式。", "error");
+                        app.ui.showUnconfiguredState();
+                    }
+                }
+            },
+
+            // --- Configuration Logic ---
+            config: {
+                parseInput: (text) => {
+                    // 通用提取函式：支援 key: "value" 或 "key": "value" 格式
+                    const extract = (key) => {
+                        // Regex 解釋：
+                        // (?:["']?key["']?) -> 匹配 key，可選擇性包含單/雙引號 (例如 apiKey 或 "apiKey")
+                        // \s*:\s* -> 匹配冒號，前後可有空白
+                        // ["']([^"']+)["']  -> 匹配被單/雙引號包圍的值，並捕捉內容
+                        const regex = new RegExp(`(?:["']?${key}["']?)\\s*:\\s*["']([^"']+)["']`);
+                        const match = text.match(regex);
+                        return match ? match[1] : "";
+                    };
+
+                    const apiKey = extract("apiKey");
+                    const projectId = extract("projectId");
+                    
+                    // 只要有 apiKey 和 projectId 就視為有效
+                    if (apiKey && projectId) {
+                        return {
+                            apiKey: apiKey,
+                            authDomain: extract("authDomain"),
+                            projectId: projectId,
+                            storageBucket: extract("storageBucket"),
+                            messagingSenderId: extract("messagingSenderId"),
+                            appId: extract("appId")
+                        };
+                    }
+                    
+                    // 最後嘗試標準 JSON 解析
+                    try { return JSON.parse(text); } catch(e) { return null; }
+                },
+                saveConfig: () => {
+                    const input = document.getElementById('configInput').value;
+                    const configObj = app.config.parseInput(input);
+                    if (!configObj) {
+                        app.ui.showToast("無法解析設定，請確保格式正確", "error");
+                        return;
+                    }
+                    localStorage.setItem('firebase_config', JSON.stringify(configObj));
+                    const aiMode = document.querySelector('input[name="aiMode"]:checked').value;
+                    localStorage.setItem('ai_mode', aiMode);
+                    if(aiMode === 'custom'){
+                        localStorage.setItem('custom_api_key', document.getElementById('inputAiKey').value);
+                    }
+                    app.ui.showToast("設定已儲存，即將重新整理頁面。", "success");
+                    setTimeout(() => location.reload(), 1500);
+                },
+                // 新增：清除設定功能
+                clearConfig: () => {
+                    app.ui.closeModal('modalConfig');
+                    // 重用確認視窗
+                    document.getElementById('confirmTitle').innerText = "確定要清除所有設定嗎？";
+                    document.getElementById('confirmDesc').innerText = "這將移除瀏覽器中儲存的 Firebase 設定與 AI Key，並重新載入頁面。";
+                    document.getElementById('modalConfirm').classList.remove('hidden');
+                    
+                    document.getElementById('btnConfirmAction').onclick = () => {
+                        localStorage.removeItem('firebase_config');
+                        localStorage.removeItem('ai_mode');
+                        localStorage.removeItem('custom_api_key');
+                        // 保留 user_role 避免使用者困惑，或也可一併清除
+                        app.ui.showToast("設定已清除，正在重新整理...", "success");
+                        setTimeout(() => location.reload(), 1000);
+                    };
+                },
+                generateShareLink: () => {
+                    if(!state.config) { app.ui.showToast("請先完成並儲存設定後再產生分享連結。", "error"); return; }
+                    const jsonStr = JSON.stringify(state.config);
+                    const base64 = btoa(jsonStr);
+                    const url = `${window.location.origin}${window.location.pathname}?config=${base64}`;
+                    document.getElementById('shareResult').classList.remove('hidden');
+                    document.getElementById('shareUrl').value = url;
+                    document.getElementById('qrcode').innerHTML = "";
+                    new QRCode(document.getElementById('qrcode'), { text: url, width: 128, height: 128 });
+                },
+                // 修改：將 checkUrlConfig 改為 getUrlConfig 並回傳物件
+                getUrlConfig: () => {
+                    const params = new URLSearchParams(window.location.search);
+                    const configB64 = params.get('config');
+                    if (configB64) {
+                        try {
+                            const jsonStr = atob(configB64);
+                            const configObj = JSON.parse(jsonStr);
+                            localStorage.setItem('firebase_config', JSON.stringify(configObj));
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                            app.ui.showToast("已偵測到分享連結，設定已優先使用並儲存！", "success");
+                            return configObj;
+                        } catch (e) { console.error("Config Parse Error", e); }
+                    }
+                    return null;
+                }
+            },
+
+            // --- AI Logic (Gemini) ---
+            ai: {
+                generateQuestions: async () => {
+                    if (!state.currentUser) { app.ui.showToast("請先完成 Firebase 連線設定", "error"); return; }
+                    
+                    const btn = document.getElementById('btnGenerate');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 生成中...`;
+                    btn.disabled = true;
+
+                    const title = document.getElementById('inputTitle').value;
+                    const textContent = document.getElementById('inputTextContent').value;
+                    
+                    if (!textContent && !title) {
+                        app.ui.showToast("請先輸入標題與教材內容", "info");
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    const prompt = `
+                    你是一位專業教師。請根據以下教材內容，設計「條列 3-2-1」策略的提問與參考答案。
+                    
+                    教材標題: ${title}
+                    教材內容: ${textContent}
+
+                    請嚴格按照以下 JSON 格式回傳，不要包含 markdown 標記 (例如 \`\`\`json)：
+                    {
+                        "q3": "設計一個層次3(事實提取)的問題，要求回答三個點",
+                        "q2": "設計一個層次2(詮釋分析)的問題，要求回答兩個點",
+                        "q1": "設計一個層次1(省思整合)的問題，要求回答一個點",
+                        "refAnswer": "針對上述三個問題的參考答案，以及教材的核心知識點摘要"
+                    }
+                    `;
+
+                    try {
+                        let apiKey = ""; 
+                        if (state.aiMode === 'custom') {
+                            apiKey = state.customAiKey;
+                            if(!apiKey) throw new Error("缺少自訂 API Key");
+                        }
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        });
+                        const data = await response.json();
+                        if(data.error) throw new Error(data.error.message);
+
+                        let resultText = data.candidates[0].content.parts[0].text;
+                        resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+                        const resultJson = JSON.parse(resultText);
+
+                        document.getElementById('inputQ3').value = resultJson.q3;
+                        document.getElementById('inputQ2').value = resultJson.q2;
+                        document.getElementById('inputQ1').value = resultJson.q1;
+                        
+                        let refAnswerText = resultJson.refAnswer;
+                        if (typeof refAnswerText === 'object' && refAnswerText !== null) {
+                            if (Array.isArray(refAnswerText)) {
+                                refAnswerText = refAnswerText.join('\n\n');
+                            } else {
+                                refAnswerText = Object.keys(refAnswerText)
+                                    .map(key => `${key}: ${refAnswerText[key]}`)
+                                    .join('\n\n');
+                            }
+                        }
+                        document.getElementById('inputRefAnswer').value = refAnswerText;
+                        app.ui.showToast("AI 生成成功！", "success");
+                    } catch (e) {
+                        console.error(e);
+                        app.ui.showToast("AI 生成失敗: " + e.message, "error");
+                    } finally {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                }
+            },
+
+            // --- Teacher Actions ---
+            teacher: {
+                currentImageBase64: null,
+
+                handleFileSelect: async (evt) => {
+                    const file = evt.target.files[0];
+                    if (!file) return;
+
+                    if (file.type === 'application/pdf') {
+                         app.ui.showToast("正在解析 PDF，請稍候...", "info");
+                         const fileReader = new FileReader();
+                         fileReader.onload = async function() {
+                            try {
+                                const typedarray = new Uint8Array(this.result);
+                                const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                                let fullText = "";
+                                for (let i = 1; i <= pdf.numPages; i++) {
+                                    const page = await pdf.getPage(i);
+                                    const textContent = await page.getTextContent();
+                                    const pageText = textContent.items.map(item => item.str).join(" ");
+                                    fullText += pageText + "\n";
+                                }
+                                document.getElementById('inputTextContent').value = fullText;
+                                app.ui.showToast("PDF 解析成功！文字已填入。", "success");
+                            } catch (e) {
+                                console.error(e);
+                                app.ui.showToast("PDF 解析失敗: " + e.message, "error");
+                            }
+                         };
+                         fileReader.readAsArrayBuffer(file);
+                         return;
+                    }
+
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                const ctx = canvas.getContext('2d');
+                                const maxWidth = 800;
+                                let width = img.width;
+                                let height = img.height;
+                                if (width > maxWidth) {
+                                    height *= maxWidth / width;
+                                    width = maxWidth;
+                                }
+                                canvas.width = width;
+                                canvas.height = height;
+                                ctx.drawImage(img, 0, 0, width, height);
+                                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                app.teacher.currentImageBase64 = dataUrl;
+                                const preview = document.getElementById('previewImage');
+                                preview.src = dataUrl;
+                                document.getElementById('previewImageContainer').classList.remove('hidden');
+                                app.ui.showToast("圖片已上傳 (僅供參考，不進行文字辨識)", "success");
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+
+                clearImage: () => {
+                    app.teacher.currentImageBase64 = null;
+                    document.getElementById('previewImageContainer').classList.add('hidden');
+                    document.getElementById('inputFile').value = "";
+                },
+
+                resetCreateForm: () => {
+                    state.isEditing = false;
+                    state.currentAssignmentId = null;
+                    document.getElementById('pageTitleCreate').innerText = "建立 3-2-1 作業";
+                    document.getElementById('btnSaveAssignment').innerText = "儲存並派送";
+                    
+                    document.getElementById('inputTitle').value = "";
+                    document.getElementById('inputTextContent').value = "";
+                    document.getElementById('inputQ3').value = "";
+                    document.getElementById('inputQ2').value = "";
+                    document.getElementById('inputQ1').value = "";
+                    document.getElementById('inputRefAnswer').value = "";
+                    app.teacher.clearImage();
+                },
+
+                editAssignment: async (id) => {
+                    const docRef = doc(state.db, "assignments", id);
+                    const docSnap = await getDoc(docRef);
+                    
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        state.isEditing = true;
+                        state.currentAssignmentId = id;
+
+                        document.getElementById('pageTitleCreate').innerText = "編輯作業";
+                        document.getElementById('btnSaveAssignment').innerText = "更新作業";
+
+                        document.getElementById('inputTitle').value = data.title;
+                        document.getElementById('inputTextContent').value = data.content || "";
+                        document.getElementById('inputQ3').value = data.q3 || "";
+                        document.getElementById('inputQ2').value = data.q2 || "";
+                        document.getElementById('inputQ1').value = data.q1 || "";
+                        document.getElementById('inputRefAnswer').value = data.refAnswer || "";
+                        
+                        if (data.image) {
+                            app.teacher.currentImageBase64 = data.image; // Corrected typo here from currentImageBaseBase64
+                            document.getElementById('previewImage').src = data.image;
+                            document.getElementById('previewImageContainer').classList.remove('hidden');
+                        } else {
+                            app.teacher.clearImage();
+                        }
+
+                        app.nav.to('viewTeacherCreate');
+                    } else {
+                        app.ui.showToast("找不到該作業", "error");
+                    }
+                },
+
+                saveAssignment: async (status) => {
+                    if (!state.currentUser) return;
+                    
+                    const title = document.getElementById('inputTitle').value;
+                    if (!title) { app.ui.showToast("請輸入標題", "info"); return; }
+
+                    const data = {
+                        title: title,
+                        content: document.getElementById('inputTextContent').value,
+                        image: app.teacher.currentImageBase64 || null,
+                        q3: document.getElementById('inputQ3').value,
+                        q2: document.getElementById('inputQ2').value,
+                        q1: document.getElementById('inputQ1').value,
+                        refAnswer: document.getElementById('inputRefAnswer').value,
+                        status: status,
+                    };
+                    
+                    if (!state.isEditing) {
+                        data.createdAt = serverTimestamp();
+                        data.createdBy = state.currentUser.uid;
+                    }
+
+                    try {
+                        const btn = document.getElementById('btnSaveAssignment');
+                        const originalText = btn.innerText;
+                        btn.innerText = "儲存中...";
+                        
+                        if (state.isEditing && state.currentAssignmentId) {
+                            await updateDoc(doc(state.db, "assignments", state.currentAssignmentId), data);
+                            app.ui.showToast("作業已更新！", "success");
+                        } else {
+                            await addDoc(collection(state.db, "assignments"), data);
+                            app.ui.showToast("作業已建立！", "success");
+                        }
+                        
+                        btn.innerText = originalText;
+                        app.nav.to('viewTeacherDashboard');
+                    } catch (e) {
+                        console.error(e);
+                        app.ui.showToast("儲存失敗: " + e.message, "error");
+                    }
+                },
+
+                loadAssignments: () => {
+                    if (!state.db) return;
+                    const q = query(collection(state.db, "assignments"), orderBy("createdAt", "desc"));
+                    onSnapshot(q, (snapshot) => {
+                        const container = document.getElementById('teacherAssignmentList');
+                        container.innerHTML = "";
+                        state.assignments = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            state.assignments.push(data);
+                            const date = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleDateString() : '剛剛';
+                            const isActive = data.status === 'active';
+                            const isEnded = data.status === 'ended';
+                            let statusColor = 'bg-slate-100 text-slate-800';
+                            if (isActive) statusColor = 'bg-green-100 text-green-800 border border-green-200';
+                            if (isEnded) statusColor = 'bg-red-50 text-red-800 border border-red-100';
+                            
+                            const statusText = isActive ? '進行中' : (isEnded ? '已停止' : '草稿');
+
+                            // Dynamic Button Logic
+                            let actionBtn = '';
+                            if (isActive) {
+                                actionBtn = `<button onclick="app.teacher.updateStatus('${doc.id}', 'ended')" class="w-full text-xs bg-red-50 text-red-600 py-2 rounded hover:bg-red-100 border border-red-200 font-bold mb-2 transition-colors"><i class="fa-solid fa-stop mr-1"></i>停止派送</button>`;
+                            } else {
+                                actionBtn = `<button onclick="app.teacher.updateStatus('${doc.id}', 'active')" class="w-full text-xs bg-green-600 text-white py-2 rounded hover:bg-green-700 shadow-sm font-bold mb-2 transition-colors"><i class="fa-solid fa-paper-plane mr-1"></i>${isEnded ? '重新派送' : '開始派送'}</button>`;
+                            }
+
+                            const card = `
+                                <div class="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all p-5 relative group flex flex-col h-full">
+                                    <button onclick="app.teacher.deleteAssignment('${doc.id}')" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 p-1 transition-colors z-10" title="刪除作業">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                    <div class="flex justify-between items-start mb-3">
+                                        <span class="text-xs font-bold px-2 py-1 rounded ${statusColor}">${statusText}</span>
+                                        <span class="text-xs text-slate-400">${date}</span>
+                                    </div>
+                                    <h3 class="font-bold text-lg text-slate-800 mb-2 truncate pr-6">${data.title}</h3>
+                                    <p class="text-sm text-slate-500 mb-4 line-clamp-2 flex-grow">${data.content || '無文字內容'}</p>
+                                    
+                                    <div class="mt-auto pt-2 border-t border-slate-100">
+                                        ${actionBtn}
+                                        <div class="flex gap-2">
+                                            <button onclick="app.teacher.editAssignment('${doc.id}')" class="flex-1 text-xs bg-slate-50 text-slate-600 py-2 rounded hover:bg-slate-100 border border-slate-200 transition-colors">編輯</button>
+                                            <button onclick="app.teacher.viewSubmissions('${doc.id}')" class="flex-1 text-xs bg-indigo-50 text-indigo-600 py-2 rounded hover:bg-indigo-100 border border-indigo-200 transition-colors">檢視結果</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            container.insertAdjacentHTML('beforeend', card);
+                        });
+                        app.student.renderActiveAssignments();
+                    });
+                },
+
+                deleteAssignment: (id) => {
+                    state.pendingDeleteId = id;
+                    // 重置確認視窗文字為刪除作業
+                    document.getElementById('confirmTitle').innerText = "確定要刪除嗎？";
+                    document.getElementById('confirmDesc').innerText = "此動作無法復原，相關的學生繳交紀錄也可能一併遺失。";
+                    document.getElementById('modalConfirm').classList.remove('hidden');
+                    
+                    document.getElementById('btnConfirmAction').onclick = async () => {
+                         app.ui.closeModal('modalConfirm');
+                         if(!state.pendingDeleteId) return;
+                         try {
+                            await deleteDoc(doc(state.db, "assignments", state.pendingDeleteId));
+                            app.ui.showToast("作業已刪除", "success");
+                            state.pendingDeleteId = null;
+                         } catch(e) {
+                            console.error(e);
+                            app.ui.showToast("刪除失敗: " + e.message, "error");
+                         }
+                    };
+                },
+
+                updateStatus: async (id, status) => {
+                    await updateDoc(doc(state.db, "assignments", id), { status: status });
+                },
+
+                viewSubmissions: (assignmentId) => {
+                    state.currentAssignmentId = assignmentId;
+                    const assignment = state.assignments.find(a => a.id === assignmentId);
+                    document.getElementById('submissionListTitle').innerText = assignment ? `[${assignment.title}] 繳交狀況` : "作業繳交狀況";
+
+                    const q = query(collection(state.db, "submissions"), where("assignmentId", "==", assignmentId));
+                    
+                    onSnapshot(q, (snapshot) => {
+                        const tbody = document.getElementById('submissionListBody');
+                        tbody.innerHTML = "";
+                        
+                        state.submissions = []; // Clear current cache
+
+                        if (snapshot.empty) {
+                            document.getElementById('noSubmissionsHint').classList.remove('hidden');
+                        } else {
+                            document.getElementById('noSubmissionsHint').classList.add('hidden');
+                            
+                            snapshot.forEach(docSnap => {
+                                state.submissions.push({ id: docSnap.id, ...docSnap.data() });
+                            });
+                            
+                            state.submissions.sort((a, b) => {
+                                const ta = a.submittedAt ? a.submittedAt.seconds : 0;
+                                const tb = b.submittedAt ? b.submittedAt.seconds : 0;
+                                return tb - ta;
+                            });
+
+                            state.submissions.forEach(sub => {
+                                const subDate = sub.submittedAt ? new Date(sub.submittedAt.seconds * 1000).toLocaleString() : "未知";
+                                const isGraded = sub.score !== null && sub.score !== undefined;
+                                const statusBadge = isGraded 
+                                    ? `<span class="px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-bold">已評分</span>` 
+                                    : `<span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-bold">待批改</span>`;
+                                const scoreDisplay = isGraded ? `<span class="font-bold text-slate-800">${sub.score}</span>` : `<span class="text-slate-400">-</span>`;
+
+                                const row = `
+                                    <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="app.teacher.loadSubmissionToGrade('${sub.id}')">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${sub.studentName}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${subDate}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">${scoreDisplay}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button class="text-blue-600 hover:text-blue-900">批改/檢視 <i class="fa-solid fa-chevron-right ml-1"></i></button>
+                                        </td>
+                                    </tr>
+                                `;
+                                tbody.insertAdjacentHTML('beforeend', row);
+                            });
+                        }
+                    });
+
+                    app.nav.to('viewTeacherSubmissionList');
+                },
+
+                // --- New Feature: View By Question ---
+                openQuestionStats: (assignmentId) => {
+                    if(!assignmentId) return;
+                    state.currentAssignmentId = assignmentId;
+                    
+                    const assignment = state.assignments.find(a => a.id === assignmentId);
+                    document.getElementById('questionStatsTitle').innerText = assignment ? `[${assignment.title}] 題目分析` : "作業題目分析";
+                    
+                    // Trigger default tab q3
+                    app.teacher.renderQuestionTab('q3');
+                    app.nav.to('viewTeacherQuestionStats');
+                },
+
+                renderQuestionTab: (tabType) => {
+                    state.currentQuestionTab = tabType;
+                    const assignment = state.assignments.find(a => a.id === state.currentAssignmentId);
+                    if(!assignment) return;
+
+                    // Update UI Tabs
+                    ['q3', 'q2', 'q1'].forEach(t => {
+                        const el = document.getElementById(`tab${t.toUpperCase()}`);
+                        if(t === tabType) {
+                            el.classList.remove('border-transparent', 'text-slate-500');
+                            el.classList.add('border-blue-600', 'text-blue-600');
+                        } else {
+                            el.classList.add('border-transparent', 'text-slate-500');
+                            el.classList.remove('border-blue-600', 'text-blue-600');
+                        }
+                    });
+
+                    // Update Question Text
+                    let questionText = assignment[tabType] || "無題目內容";
+                    document.getElementById('statsQuestionText').innerText = questionText;
+
+                    // Filter Answers (Using cached state.submissions if available, or need to fetch)
+                    // Note: viewSubmissions loads state.submissions. If user comes directly or refreshed, we might need to fetch.
+                    // For safety, let's check if state.submissions matches current ID.
+                    // Since openQuestionStats is usually called from list context where we might not have subs yet, let's fetch if empty or mismatched logic (simplified here to reuse fetch if needed, but for now assuming data flow)
+                    // Actually, let's just re-use the listener pattern if we want real-time updates, OR just use the cache if we came from list view. 
+                    // Best robust way: Check if we have submissions for this assignment.
+                    
+                    if(!state.submissions || state.submissions.length === 0 || state.submissions[0]?.assignmentId !== state.currentAssignmentId) {
+                         // Perform a fetch if data missing
+                         const q = query(collection(state.db, "submissions"), where("assignmentId", "==", state.currentAssignmentId));
+                         getDocs(q).then(snapshot => {
+                             state.submissions = [];
+                             snapshot.forEach(doc => state.submissions.push({id: doc.id, ...doc.data()}));
+                             app.teacher._renderAnswersList(tabType);
+                         });
+                    } else {
+                        app.teacher._renderAnswersList(tabType);
+                    }
+                },
+
+                _renderAnswersList: (fieldKey) => {
+                    // fieldKey is 'q3', 'q2', 'q1' mapped to data fields 'a3', 'a2', 'a1'
+                    const answerKey = fieldKey.replace('q', 'a'); // q3 -> a3
+                    const container = document.getElementById('statsAnswersList');
+                    container.innerHTML = "";
+
+                    if(state.submissions.length === 0) {
+                        container.innerHTML = `<div class="text-center text-slate-400 py-10">尚無繳交資料</div>`;
+                        return;
+                    }
+
+                    state.submissions.forEach(sub => {
+                        const answer = sub[answerKey] || "未回答";
+                        const card = `
+                            <div class="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-bold text-slate-800">${sub.studentName}</span>
+                                    <span class="text-xs text-slate-400">${sub.submittedAt ? new Date(sub.submittedAt.seconds*1000).toLocaleDateString() : ''}</span>
+                                </div>
+                                <div class="text-slate-600 whitespace-pre-wrap bg-slate-50 p-3 rounded text-sm">${answer}</div>
+                            </div>
+                        `;
+                        container.insertAdjacentHTML('beforeend', card);
+                    });
+                },
+                
+                // Load single submission to grade
+                loadSubmissionToGrade: async (submissionId) => {
+                    state.currentSubmissionId = submissionId;
+                    try {
+                        const subSnap = await getDoc(doc(state.db, "submissions", submissionId));
+                        if (!subSnap.exists()) { app.ui.showToast("找不到該作業", "error"); return; }
+                        
+                        const subData = subSnap.data();
+                        
+                        // Fetch Assignment data for Reference Answer
+                        const assignSnap = await getDoc(doc(state.db, "assignments", subData.assignmentId));
+                        const assignData = assignSnap.exists() ? assignSnap.data() : { q3: '', q2: '', q1: '', refAnswer: '' };
+
+                        // Fill Grade View
+                        document.getElementById('gradeStudentName').innerText = `${subData.studentName} 的答題詳情`;
+                        
+                        document.getElementById('gradeQ3').innerText = assignData.q3;
+                        document.getElementById('gradeA3').innerText = subData.a3 || "無回答";
+                        
+                        document.getElementById('gradeQ2').innerText = assignData.q2;
+                        document.getElementById('gradeA2').innerText = subData.a2 || "無回答";
+                        
+                        document.getElementById('gradeQ1').innerText = assignData.q1;
+                        document.getElementById('gradeA1').innerText = subData.a1 || "無回答";
+
+                        document.getElementById('gradeRefAnswer').innerText = assignData.refAnswer || "無參考答案";
+                        
+                        // Fill Score & Feedback
+                        document.getElementById('inputGradeScore').value = subData.score || "";
+                        document.getElementById('inputGradeFeedback').value = subData.feedback || "";
+
+                        app.nav.to('viewTeacherGrade');
+                    } catch (e) {
+                        console.error(e);
+                        app.ui.showToast("載入失敗: " + e.message, "error");
+                    }
+                },
+
+                submitGrade: async () => {
+                    if (!state.currentSubmissionId) return;
+                    
+                    const score = document.getElementById('inputGradeScore').value;
+                    const feedback = document.getElementById('inputGradeFeedback').value;
+
+                    try {
+                        await updateDoc(doc(state.db, "submissions", state.currentSubmissionId), {
+                            score: score,
+                            feedback: feedback
+                        });
+                        app.ui.showToast("評分已儲存！", "success");
+                        // Go back to list
+                        app.nav.to('viewTeacherSubmissionList');
+                    } catch (e) {
+                        console.error(e);
+                        app.ui.showToast("儲存失敗: " + e.message, "error");
+                    }
+                }
+            },
+
+            // --- Student Actions ---
+            student: {
+                renderActiveAssignments: () => {
+                    const container = document.getElementById('studentActiveAssignment');
+                    if (!container) return; // Add check to prevent crash if not on Student View
+                    
+                    const active = state.assignments.filter(a => a.status === 'active');
+                    if (active.length === 0) {
+                        container.innerHTML = `<p class="text-slate-500">目前沒有進行中的作業。</p>`;
+                        return;
+                    }
+                    
+                    container.innerHTML = "";
+                    active.forEach(data => {
+                        const contentPreview = data.content ? (data.content.length > 30 ? data.content.substring(0, 30) + '...' : data.content) : '詳情請見內容';
+                        const item = `
+                            <div class="bg-blue-50 border border-blue-100 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm transition-all hover:shadow-md hover:border-blue-300">
+                                <div>
+                                    <h4 class="font-bold text-lg text-blue-900 mb-1">${data.title}</h4>
+                                    <p class="text-sm text-slate-500"><i class="fa-regular fa-file-lines mr-1"></i>${contentPreview}</p>
+                                </div>
+                                <button onclick="app.student.startAssignment('${data.id}')" class="whitespace-nowrap bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 shadow-sm font-medium transition-colors flex items-center gap-2">
+                                    <i class="fa-solid fa-pen-nib"></i> 開始作答
+                                </button>
+                            </div>
+                        `;
+                        container.insertAdjacentHTML('beforeend', item);
+                    });
+                },
+                startAssignment: (id) => {
+                    const data = state.assignments.find(a => a.id === id);
+                    if (!data) return;
+                    state.currentAssignmentId = id;
+                    document.getElementById('doTitle').innerText = data.title;
+                    document.getElementById('labelDoQ3').innerText = data.q3;
+                    document.getElementById('labelDoQ2').innerText = data.q2;
+                    document.getElementById('labelDoQ1').innerText = data.q1;
+                    
+                    document.getElementById('inputStudentName').value = ""; // Clear name
+                    document.getElementById('answerA3_1').value = "";
+                    document.getElementById('answerA3_2').value = "";
+                    document.getElementById('answerA3_3').value = "";
+                    document.getElementById('answerA2_1').value = "";
+                    document.getElementById('answerA2_2').value = "";
+                    document.getElementById('answerA1').value = "";
+                    app.nav.to('viewStudentDo');
+                },
+                submitAssignment: async () => {
+                    if (!state.currentUser || !state.currentAssignmentId) return;
+                    
+                    const studentName = document.getElementById('inputStudentName').value.trim();
+                    if (!studentName) {
+                        app.ui.showToast("請輸入您的姓名！", "error");
+                        document.getElementById('inputStudentName').focus();
+                        return;
+                    }
+
+                    const a3_1 = document.getElementById('answerA3_1').value.trim();
+                    const a3_2 = document.getElementById('answerA3_2').value.trim();
+                    const a3_3 = document.getElementById('answerA3_3').value.trim();
+                    const a2_1 = document.getElementById('answerA2_1').value.trim();
+                    const a2_2 = document.getElementById('answerA2_2').value.trim();
+                    const a1 = document.getElementById('answerA1').value.trim();
+                    if (!a3_1 || !a3_2 || !a3_3 || !a2_1 || !a2_2 || !a1) {
+                        app.ui.showToast("請完成所有欄位後再繳交！", "error");
+                        return;
+                    }
+                    const finalA3 = `1. ${a3_1}\n2. ${a3_2}\n3. ${a3_3}`;
+                    const finalA2 = `1. ${a2_1}\n2. ${a2_2}`;
+                    try {
+                        await addDoc(collection(state.db, "submissions"), {
+                            assignmentId: state.currentAssignmentId,
+                            studentId: state.currentUser.uid,
+                            studentName: studentName, // Use the entered name
+                            a3: finalA3, a2: finalA2, a1: a1,
+                            submittedAt: serverTimestamp(),
+                            score: null, feedback: null
+                        });
+                        app.ui.showToast("作業已繳交！", "success");
+                        app.nav.to('viewStudentDashboard');
+                    } catch (e) {
+                        app.ui.showToast("繳交失敗: " + e.message, "error");
+                    }
+                }
+            },
+
+            // --- Navigation & UI Utilities ---
+            nav: {
+                to: (viewId) => {
+                    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+                    document.getElementById(viewId).classList.remove('hidden');
+                    window.scrollTo(0,0);
+                },
+                back: () => {
+                    // Logic to determine where to go back
+                    const currentView = document.querySelector('.view-section:not(.hidden)').id;
+                    
+                    if (currentView === 'viewTeacherSubmissionList') {
+                        app.nav.to('viewTeacherDashboard');
+                    } else if (currentView === 'viewTeacherQuestionStats') {
+                        app.nav.to('viewTeacherSubmissionList'); // Back to submission list usually
+                    } else if (currentView === 'viewTeacherGrade') {
+                        // Return to wherever we came from (Question Stats or Student List)
+                        // For simplicity, default to List, or we could track previous view
+                        app.nav.to('viewTeacherSubmissionList');
+                    } else if (state.role === 'teacher') {
+                        app.nav.to('viewTeacherDashboard');
+                    } else {
+                        app.nav.to('viewStudentDashboard');
+                    }
+                }
+            },
+            switchRole: (role) => {
+                if (role === 'teacher') {
+                    // Open Modal logic
+                    document.getElementById('inputTeacherPassword').value = '';
+                    document.getElementById('modalPassword').classList.remove('hidden');
+                    
+                    const btn = document.getElementById('btnVerifyPassword');
+                    btn.onclick = () => {
+                        const input = document.getElementById('inputTeacherPassword');
+                        if(input.value === 'tpet') {
+                            app.ui.closeModal('modalPassword');
+                            app.ui.showToast("身分驗證成功", "success");
+                            app.doSwitch('teacher');
+                        } else {
+                            app.ui.showToast("密碼錯誤", "error");
+                            input.value = "";
+                            input.focus();
+                        }
+                    };
+                    
+                    // Add Enter key listener
+                    document.getElementById('inputTeacherPassword').onkeyup = (e) => {
+                        if (e.key === 'Enter') btn.click();
+                    };
+                    
+                    // Focus input
+                    setTimeout(() => document.getElementById('inputTeacherPassword').focus(), 100);
+                } else {
+                    app.doSwitch('student');
+                }
+            },
+
+            doSwitch: (role) => {
+                state.role = role;
+                localStorage.setItem('user_role', role);
+                const btnT = document.getElementById('btnRoleTeacher');
+                const btnS = document.getElementById('btnRoleStudent');
+                
+                if (role === 'teacher') {
+                    btnT.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm";
+                    btnS.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 hover:text-slate-700";
+                    if (state.currentUser) app.nav.to('viewTeacherDashboard');
+                } else {
+                    btnS.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-white text-blue-600 shadow-sm";
+                    btnT.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all text-slate-500 hover:text-slate-700";
+                    if (state.currentUser) {
+                        app.student.renderActiveAssignments();
+                        app.nav.to('viewStudentDashboard');
+                    }
+                }
+            },
+            ui: {
+                showToast: (message, type = 'info') => {
+                    const container = document.getElementById('toast-container');
+                    const toast = document.createElement('div');
+                    toast.className = `toast ${type}`;
+                    let icon = 'fa-circle-info';
+                    if(type === 'success') icon = 'fa-circle-check text-green-500';
+                    if(type === 'error') icon = 'fa-circle-exclamation text-red-500';
+                    if(type === 'info') icon = 'fa-circle-info text-blue-500';
+                    toast.innerHTML = `<div class="flex items-center gap-3"><i class="fa-solid ${icon} text-lg"></i><span>${message}</span></div>`;
+                    container.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.animation = 'fadeOut 0.3s ease-in forwards';
+                        toast.addEventListener('animationend', () => toast.remove());
+                    }, 3000);
+                },
+                openConfigModal: () => {
+                    document.getElementById('modalConfig').classList.remove('hidden');
+                    const current = localStorage.getItem('firebase_config');
+                    if (current) document.getElementById('configInput').value = JSON.stringify(JSON.parse(current), null, 2);
+                },
+                openHelpModal: () => document.getElementById('modalHelp').classList.remove('hidden'),
+                closeModal: (id) => document.getElementById(id).classList.add('hidden'),
+                toggleAiInput: () => {
+                    const mode = document.querySelector('input[name="aiMode"]:checked').value;
+                    const el = document.getElementById('customAiKeyInput');
+                    if (mode === 'custom') el.classList.remove('hidden'); else el.classList.add('hidden');
+                },
+                showUnconfiguredState: () => {
+                    document.getElementById('connectionStatus').className = "h-3 w-3 rounded-full bg-red-400";
+                    document.getElementById('connectionStatus').title = "未設定";
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('inputFile');
+            // FIX: Remove redundant click listener which conflicts with the overlay input
+            // dropZone.addEventListener('click', () => fileInput.click()); 
+            
+            fileInput.addEventListener('change', app.teacher.handleFileSelect);
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-slate-100'); });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-slate-100'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault(); dropZone.classList.remove('bg-slate-100');
+                if(e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    app.teacher.handleFileSelect({target: fileInput});
+                }
+            });
+        });
+        
+        // EXPOSE STATE GLOBALLY TO FIX HTML ONCLICK ISSUES
+        window.state = state;
+        window.app = app;
+    </script>
+</body>
+</html>
